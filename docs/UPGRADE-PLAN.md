@@ -2,27 +2,31 @@
 
 ## Current state
 
-Score: 6/10 — core feature implemented with tested pure-Dart logic and honest
-CI; still session-only (no persistence) and release signing uses debug keys.
+Score: 7/10 — catalog and integer-cent cart with tested logic, the cart persists on device behind a tested repository, honest CI and fail-closed release signing; still a demo with no checkout.
 
 ## Backlog
 
 ### P0
-- Android release signing must fail closed: `android/app/build.gradle.kts`
-  still signs `release` with the debug key. Mirror the `key.properties` guard
-  used in `bookchaowalit-goal-tracker-mobile`.
+- None open. (Release signing now fails closed without `android/key.properties`.)
 
 ### P1
-- Persist user data locally (`shared_preferences`) with load/save error
-  handling and tests.
-- Set a real application ID (currently the template default) and app icon.
+- Product detail screen with description and preview images.
+- If checkout is ever added, use a hosted payment page; never collect card data in the app.
+- Replace the template launcher icon with a real app icon (the application ID `com.bookchaowalit.*` is already set).
 - Add a Maestro smoke flow for the main journey.
+- Add a CI job that builds a signed release bundle from repository secrets (keystore decoded at runtime, never committed).
 
 ### P2
 - Tablet layout (NavigationRail) and 130% text-scale widget test.
 - Localisation (Thai/English) for UI strings.
 
-## Done in this pass
+## Done in this pass (pass 2)
+
+- Release builds no longer sign with the debug key: `android/app/build.gradle.kts` reads the ignored `android/key.properties` and a Gradle guard fails any release assemble/bundle without it (pattern from `bookchaowalit-goal-tracker-mobile`). Root `.gitignore` also ignores `key.properties`, `*.jks`, `*.keystore`; README documents the setup. Not build-verified here (no Android SDK/Gradle in this environment).
+- The cart (product ids, quantities, discount code) now persists on device via `lib/data/cart_repository.dart` (`CartRepository` interface, `shared_preferences` JSON store, in-memory store for tests). `Cart.restore` resolves ids against the catalog, drops unknown products/codes and clamps quantities; the home screen shows an error line when storage fails.
+- Added repository and restore tests plus widget tests for restore/save and load failure.
+
+## Done in pass 1
 
 - Replaced the Expo/npm CI (which could never fail) with fail-closed Flutter CI: `dart format` check, `flutter analyze`, `flutter test`, debug APK on `main`.
 - Implemented the core feature (browse a small catalog of digital products and build a cart with an accurate total) with pure-Dart logic in `lib/logic/`.
