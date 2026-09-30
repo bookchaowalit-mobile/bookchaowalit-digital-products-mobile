@@ -26,6 +26,7 @@ Score: 7.5/10 — persisted integer-cent cart with edge-case-tested maths, limit
 - Accessibility: quantities are announced as "N of <product> in cart" instead of a bare number; the total is a live region.
 - Edge-case unit tests (no logic bugs found — cart maths held up): `formatCents` boundaries, half-cent discount rounding, a full 99×catalog cart staying exact and non-negative, no-op add/remove at limits, code whitespace/case, line order, `CartState` JSON with non-integer quantities.
 - Widget tests: disabled add at the limit, quantity semantics, a11y guidelines (tap target, labels, contrast), 200% text scale.
+- The 200% text-scale widget test now runs at a 360 px phone width (it previously used the 800 px default test surface); no overflow found.
 
 ## Done in pass 2
 
