@@ -127,6 +127,22 @@ class Cart {
     _code = null;
   }
 
+  /// Serializable snapshot of the cart (product ids, quantities, code).
+  CartState snapshot() => CartState(quantities: Map.of(_qty), code: _code);
+
+  /// Replaces the cart with [state], resolving ids against [catalog].
+  /// Unknown products, non-positive quantities and unknown codes are
+  /// dropped; quantities above [maxQuantity] are clamped.
+  void restore(CartState state, Iterable<Product> catalog) {
+    clear();
+    final byId = {for (final p in catalog) p.id: p};
+    state.quantities.forEach((id, q) {
+      final product = byId[id];
+      if (product != null) setQuantity(product, q);
+    });
+    if (state.code != null) applyCode(state.code!);
+  }
+
   CartTotals totals() {
     var subtotal = 0;
     var count = 0;
@@ -142,6 +158,29 @@ class Cart {
       discountCents: discount,
       totalCents: subtotal - discount,
       itemCount: count,
+    );
+  }
+}
+
+class CartState {
+  const CartState({this.quantities = const {}, this.code});
+
+  final Map<String, int> quantities;
+  final String? code;
+
+  Map<String, Object?> toJson() => {'quantities': quantities, 'code': code};
+
+  /// Entries with a non-integer quantity are skipped; a malformed shape
+  /// throws.
+  static CartState fromJson(Map<String, Object?> json) {
+    final raw = json['quantities'] as Map? ?? const {};
+    return CartState(
+      quantities: {
+        for (final e in raw.entries)
+          if (e.key is String && e.value is int)
+            e.key as String: e.value as int,
+      },
+      code: json['code'] as String?,
     );
   }
 }

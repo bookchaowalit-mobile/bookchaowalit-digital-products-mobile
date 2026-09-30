@@ -2,10 +2,14 @@ import 'package:digital_products/main.dart';
 import 'package:digital_products/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   testWidgets('app shell shows shop and about tab', (tester) async {
     await tester.pumpWidget(const DigitalProductsApp());
+    await tester.pumpAndSettle();
     expect(find.text('Digital Products'), findsWidgets);
     await tester.tap(find.text('About'));
     await tester.pumpAndSettle();
@@ -17,6 +21,7 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(const MaterialApp(home: HomeScreen()));
+    await tester.pumpAndSettle();
     Text total() => tester.widget<Text>(find.byKey(const Key('total')));
     expect(total().data, r'$0.00');
 
