@@ -141,13 +141,24 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? null
                           : () => _change(() => _cart.remove(p)),
                     ),
-                    Text('${_cart.quantityOf(p.id)}'),
+                    Text(
+                      '${_cart.quantityOf(p.id)}',
+                      key: Key('qty-${p.id}'),
+                      semanticsLabel:
+                          '${_cart.quantityOf(p.id)} of ${p.name} in cart',
+                    ),
                     IconButton(
                       key: Key('add-${p.id}'),
-                      tooltip: 'Add ${p.name}',
+                      tooltip: _cart.quantityOf(p.id) >= Cart.maxQuantity
+                          ? 'Maximum ${Cart.maxQuantity} per product'
+                          : 'Add ${p.name}',
                       icon: const Icon(Icons.add_circle_outline),
+                      // Disabled at the limit instead of silently ignoring
+                      // the tap.
                       onPressed:
-                          _loading ? null : () => _change(() => _cart.add(p)),
+                          _loading || _cart.quantityOf(p.id) >= Cart.maxQuantity
+                              ? null
+                              : () => _change(() => _cart.add(p)),
                     ),
                   ],
                 ),
@@ -186,7 +197,10 @@ class _HomeScreenState extends State<HomeScreen> {
               'Discount (${_cart.appliedCode})',
               formatCents(-totals.discountCents),
             ),
-          _row('Total', formatCents(totals.totalCents), key: 'total'),
+          Semantics(
+            liveRegion: true,
+            child: _row('Total', formatCents(totals.totalCents), key: 'total'),
+          ),
           const SizedBox(height: 8),
           const Text(
             'Demo cart only: there is no checkout or payment.',

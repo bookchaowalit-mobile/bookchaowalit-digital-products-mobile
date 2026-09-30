@@ -63,4 +63,77 @@ void main() {
     cart.clear();
     expect(cart.totals().totalCents, 0);
   });
+
+  group('edge cases (pass 3)', () {
+    test('formatCents boundaries', () {
+      expect(formatCents(1), r'$0.01');
+      expect(formatCents(99), r'$0.99');
+      expect(formatCents(100000), r'$1,000.00');
+      expect(formatCents(99999), r'$999.99');
+      expect(formatCents(-1), r'-$0.01');
+    });
+
+    test('discount rounding at the half-cent boundary', () {
+      const one = Product(id: 'o', name: 'O', category: 'Z', priceCents: 1);
+      final cart = Cart()..add(one);
+      cart.applyCode('HALFOFF'); // 0.5 cents -> 1
+      expect(cart.totals().discountCents, 1);
+      expect(cart.totals().totalCents, 0);
+      cart.applyCode('WELCOME10'); // 0.1 cents -> 0
+      expect(cart.totals().discountCents, 0);
+      cart.setQuantity(one, 5); // 0.5 cents -> 1
+      expect(cart.totals().discountCents, 1);
+    });
+
+    test('total never goes negative and a full cart stays exact', () {
+      final cart = Cart();
+      for (final p in sampleCatalog) {
+        cart.setQuantity(p, Cart.maxQuantity);
+      }
+      cart.applyCode('HALFOFF');
+      final t = cart.totals();
+      final subtotal =
+          sampleCatalog.fold(0, (s, p) => s + p.priceCents) * Cart.maxQuantity;
+      expect(t.subtotalCents, subtotal);
+      expect(t.itemCount, sampleCatalog.length * Cart.maxQuantity);
+      expect(t.discountCents + t.totalCents, subtotal);
+      expect(t.totalCents, greaterThanOrEqualTo(0));
+    });
+
+    test('add at the limit is a no-op; remove at zero is a no-op', () {
+      final cart = Cart()..setQuantity(a, Cart.maxQuantity);
+      cart.add(a);
+      expect(cart.quantityOf('a'), Cart.maxQuantity);
+      cart.remove(b);
+      expect(cart.quantities.containsKey('b'), isFalse);
+    });
+
+    test('codes ignore case and surrounding whitespace only', () {
+      final cart = Cart();
+      expect(cart.applyCode('  halfOff\t'), isTrue);
+      expect(cart.appliedCode, 'HALFOFF');
+      expect(cart.applyCode('HALF OFF'), isFalse);
+      expect(cart.applyCode('   '), isTrue);
+      expect(cart.appliedCode, isNull);
+    });
+
+    test('cart order follows first add, even after quantity changes', () {
+      final cart = Cart()
+        ..add(b)
+        ..add(a)
+        ..setQuantity(b, 5);
+      expect(cart.products.map((p) => p.id), ['b', 'a']);
+    });
+
+    test('CartState JSON skips non-integer quantities', () {
+      final state = CartState.fromJson({
+        'quantities': {'a': 2, 'b': 2.0, 'c': '3', 'd': null},
+        'code': 'WELCOME10',
+      });
+      expect(state.quantities, {'a': 2});
+      final cart = Cart()..restore(state, const [a, b]);
+      expect(cart.totals().subtotalCents, 1999 * 2);
+      expect(cart.appliedCode, 'WELCOME10');
+    });
+  });
 }

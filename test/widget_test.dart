@@ -1,3 +1,5 @@
+import 'package:digital_products/data/cart_repository.dart';
+import 'package:digital_products/logic/cart.dart';
 import 'package:digital_products/main.dart';
 import 'package:digital_products/screens/home_screen.dart';
 import 'package:flutter/material.dart';
@@ -43,5 +45,64 @@ void main() {
     await tester.tap(find.text('Templates'));
     await tester.pump();
     expect(find.text('Flutter Starter eBook'), findsNothing);
+  });
+
+  Widget home({double textScale = 1, CartRepository? repository}) =>
+      MaterialApp(
+        home: MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+          child: HomeScreen(repository: repository),
+        ),
+      );
+
+  testWidgets('add is disabled at the per-product limit', (tester) async {
+    await tester.pumpWidget(
+      home(
+        repository: InMemoryCartRepository(
+          const CartState(quantities: {'ebook-flutter': Cart.maxQuantity}),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final add = tester.widget<IconButton>(
+      find.byKey(const Key('add-ebook-flutter')),
+    );
+    expect(add.onPressed, isNull);
+    expect(add.tooltip, 'Maximum ${Cart.maxQuantity} per product');
+    expect(
+      tester.widget<Text>(find.byKey(const Key('qty-ebook-flutter'))).data,
+      '${Cart.maxQuantity}',
+    );
+  });
+
+  testWidgets('quantity is announced with the product name', (tester) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(home());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('add-ebook-dart')));
+    await tester.pump();
+    expect(
+      find.bySemanticsLabel(RegExp('1 of Dart Patterns eBook in cart')),
+      findsOneWidget,
+    );
+    handle.dispose();
+  });
+
+  testWidgets('meets tap-target, label and contrast guidelines', (
+    tester,
+  ) async {
+    final handle = tester.ensureSemantics();
+    await tester.pumpWidget(home());
+    await tester.pumpAndSettle();
+    await expectLater(tester, meetsGuideline(androidTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(labeledTapTargetGuideline));
+    await expectLater(tester, meetsGuideline(textContrastGuideline));
+    handle.dispose();
+  });
+
+  testWidgets('lays out at 200% text scale without overflow', (tester) async {
+    await tester.pumpWidget(home(textScale: 2));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
   });
 }
